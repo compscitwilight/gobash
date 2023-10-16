@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/Delta456/box-cli-maker/v2 v2.3.0 // indirect
+	github.com/Shopify/go-lua v0.0.0-20221004153744-91867de107cf // indirect
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/gookit/color v1.5.2 // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect

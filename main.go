@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 
@@ -13,16 +14,28 @@ import (
 	"github.com/fatih/color"
 )
 
-const _VERSION = float32(1.0)
+const _VERSION = 1.0
 
 var USER_CONTROL = true
 var USER_INPUT = ""
 var HOSTNAME string
 var USERNAME string
 
+var CONFIG_PATH string
+var CLI_PREFIX = "#"
+
 func main() {
+	if runtime.GOOS == "windows" {
+		log.Println("GoBash is not supported on Windows.")
+		log.Println("Please see https://github.com/devrusty/gobash for more details")
+		os.Exit(0)
+	}
+
 	log.SetFlags(0)
-	log.Println(color.CyanString("GoBash version:"), _VERSION)
+	log.SetPrefix(color.HiMagentaString("/)"))
+	log.Println(strings.Join([]string{
+		fmt.Sprintf("version: %g.0", _VERSION),
+	}, " "))
 	show_shell_menu()
 
 	//log.SetPrefix(color.GreenString("out -> "))
@@ -35,14 +48,28 @@ func main() {
 
 	HOSTNAME = hostname
 	USERNAME = strings.TrimSuffix(string(username), "\n")
+	CONFIG_PATH = fmt.Sprintf("/home/%v/.config/gobash", USERNAME)
+
+	config_data, parse_err := parse_config_file()
+	if parse_err != nil {
+		log.Println(parse_err)
+	}
+
+	if val, ok := config_data["CLI_PREFIX"]; ok {
+		CLI_PREFIX = val
+	}
+
+	if val, ok := config_data["USERNAME"]; ok {
+		USERNAME = val
+	}
 
 	in := bufio.NewScanner(os.Stdin)
 	// Input loop
 	for {
 		wd, _ := get_working_directory()
 		wd_subs := strings.Split(wd, "/")
-		fmt.Printf("%v@%v [%v]", USERNAME, HOSTNAME, wd_subs[len(wd_subs)-1])
-		fmt.Printf(color.MagentaString("# "))
+		fmt.Printf("%v@%v [%v/%v]", USERNAME, HOSTNAME, color.BlueString(fmt.Sprint(len(wd_subs)-1)), wd_subs[len(wd_subs)-1])
+		fmt.Printf(color.MagentaString(fmt.Sprintf("%v ", CLI_PREFIX)))
 
 		in.Scan()
 		USER_INPUT = in.Text()
@@ -71,7 +98,39 @@ func main() {
 }
 
 func show_shell_menu() {
-	log.Println("")
-	man_box := box.New(box.Config{Px: 5, Py: 0, Type: "Single", Color: "Cyan"})
-	man_box.Print("Man", "")
+	man_box := box.New(box.Config{Px: 15, Type: "Single", Color: "Cyan"})
+	options := []string{"Docs", "About", "Configuration", "Scripts"}
+
+	get_options_string := func() string {
+		res := ""
+		for index, opt := range options {
+			res = fmt.Sprintf("%v\n%d - %v", res, index+1, opt)
+		}
+		return res
+	}
+	man_box.TopRight = "1"
+	man_box.TopLeft = "0"
+	man_box.BottomLeft = "1"
+	man_box.BottomRight = "0"
+	man_box.Print("Startup", get_options_string())
+}
+
+func parse_config_file() (map[string]string, error) {
+	data := make(map[string]string)
+	content, err := os.ReadFile(CONFIG_PATH)
+	if err != nil {
+		return nil, err
+	}
+
+	content_string := string(content)
+	lines := strings.Split(content_string, "\n")
+	for _, line := range lines {
+		if len(line) > 0 {
+			sep := strings.Split(line, "=")
+			key := sep[0]
+			value := sep[1]
+			data[key] = value
+		}
+	}
+	return data, nil
 }

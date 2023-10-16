@@ -4,13 +4,14 @@ import (
 	"os"
 )
 
-var DIRECTORY string = ""
+var WORKING_DIRECTORY string
 
 func get_working_directory() (string, error) {
 	var wd string
-	if DIRECTORY == "" {
+	if WORKING_DIRECTORY == "" {
 		wd, _ = os.Getwd()
+		WORKING_DIRECTORY = wd
 		return wd, nil
 	}
-	return DIRECTORY, nil
+	return WORKING_DIRECTORY, nil
 }
