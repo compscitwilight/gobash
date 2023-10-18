@@ -18,6 +18,7 @@ func run_lua_script(alias string) error {
 	wd, _ := get_working_directory()
 	path := filepath.Join(wd, alias)
 	lua.OpenLibraries(l)
+	lua.NewLibrary(l, []lua.RegistryFunction{})
 	if err := lua.DoFile(l, path); err != nil {
 		return err
 	}

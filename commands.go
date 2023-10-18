@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/fatih/color"
@@ -14,14 +15,9 @@ import (
 const SHELL_COMMAND_PREFIX = "#"
 
 // Method for executing operating system commands using the os package
-func sys_exec(cmd string) (*exec.Cmd, []byte, error) {
-	//USER_CONTROL = false
+func sys_exec(cmd string, channel ...chan any) (*exec.Cmd, []byte, error) {
 	char_0 := string(cmd[0])
 	command, args := parse_command(cmd)
-	/**
-	command := strings.Split(cmd, " ")[0]
-	args := strings.Split(strings.TrimPrefix(cmd, command), " ")
-	*/
 	is_file_reference := char_0 == "." || char_0 == "/"
 	if is_file_reference {
 		wd, _ := get_working_directory()
@@ -40,12 +36,6 @@ func sys_exec(cmd string) (*exec.Cmd, []byte, error) {
 		output, err := command_exec.Output()
 		return command_exec, output, err
 	}
-	/**
-	command := exec.Command(cmd)
-	output, err := command.Output()
-	*/
-	//USER_CONTROL = true
-	//return command, output, err
 }
 
 // For handling internal shell commands that manipulate the
@@ -64,11 +54,14 @@ func shell_exec(cmd string) {
 		os.Exit(1)
 	} else if command == "cd" {
 		//os.Open(args[0])
-		path := filepath.Join(WORKING_DIRECTORY, args[0])
-		if err := os.Chdir(path); err != nil {
+		//path := filepath.Join(WORKING_DIRECTORY, args[1])
+		//log.Println(args[1])
+		if err := os.Chdir(args[1]); err != nil {
 			log.Println(err)
 			return
 		}
+		change_working_directory(args[1])
+		log.Println(fmt.Sprintf("#cd: %v", args[1]))
 		//new_path := filepath.Join([]string{WORKING_DIRECTORY, "../", args[0]}...)
 		//log.Println(new_path, args[0])
 		//WORKING_DIRECTORY = new_path
@@ -84,11 +77,38 @@ func shell_exec(cmd string) {
 	} else if strings.Split(command, ".")[0] == "config" {
 		log.Println("yo")
 	} else if strings.Split(command, ".")[0] == "script" {
-		script_name := strings.Split(command, ".")[1]
-		lua_log(fmt.Sprintf("Running lua script %v", script_name))
-		if err := run_lua_script(script_name); err != nil {
-			log.Println(err)
+		valid_size := len(strings.Split(command, ".")) != 0
+		if valid_size {
+			script_name := strings.Split(command, ".")[1]
+			lua_log(fmt.Sprintf("Running lua script %v", script_name))
+			if err := run_lua_script(script_name); err != nil {
+				log.Println(err)
+			}
 		}
+	} else if command == "tree" {
+		tree := create_tree()
+		tree.content = "Root Node"
+		directory := create_tree()
+		directory.content = "Directory"
+		sub_directory := create_tree()
+		sub_directory.content = "Subdirectory"
+
+		tree = append_child_node(tree, &sub_directory)
+		tree = append_child_node(tree, &directory)
+		log_tree(tree)
+	} else if command == "cr" {
+		if len(args) < 3 {
+			log.Println("Coroutines must have more than 3 arguments.")
+			return
+		}
+
+		name := args[1]
+		task1 := args[2]
+		task2 := args[3]
+
+		channel := *create_global_channel(name)
+		go sys_exec(task1, channel)
+		go sys_exec(task2, channel)
 	}
 }
 
@@ -96,6 +116,13 @@ func parse_command(cmd string) (string, []string) {
 	command := strings.Split(cmd, " ")[0]
 	args := strings.Split(strings.TrimPrefix(cmd, command), " ")
 	return command, args
+}
+
+func register_command(name string) {
+	_, file, _, ok := runtime.Caller(0)
+	if ok {
+		log.Println(file)
+	}
 }
 
 func log_help_manual() {

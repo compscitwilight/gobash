@@ -14,12 +14,16 @@ import (
 	"github.com/fatih/color"
 )
 
-const _VERSION = 1.0
+const (
+	_VERSION = 1.0
+)
 
 var USER_CONTROL = true
 var USER_INPUT = ""
+var KEY_INPUT []byte
 var HOSTNAME string
 var USERNAME string
+var SOURCE_DIR string
 
 var CONFIG_PATH string
 var CLI_PREFIX = "#"
@@ -39,6 +43,10 @@ func main() {
 	show_shell_menu()
 
 	//log.SetPrefix(color.GreenString("out -> "))
+
+	if dir, wd_err := os.Getwd(); wd_err != nil {
+		SOURCE_DIR = dir
+	}
 
 	hostname, err := os.Hostname()
 	username, err := exec.Command("whoami").Output()
@@ -73,6 +81,7 @@ func main() {
 
 		in.Scan()
 		USER_INPUT = in.Text()
+		KEY_INPUT = in.Bytes()
 		//fmt.Scanf("%s", &USER_INPUT)
 		//USER_INPUT = strings.Join([]string{USER_INPUT}, " ")
 		//log.Println(len(USER_INPUT))
@@ -80,20 +89,24 @@ func main() {
 		history_append(USER_INPUT, int(time.Now().Unix()))
 
 		var is_shell_command bool = false
-		if string(USER_INPUT[0]) == SHELL_COMMAND_PREFIX {
-			is_shell_command = true
-		}
+		var is_valid_input bool = len(USER_INPUT) != 0
+		if is_valid_input {
+			if string(USER_INPUT[0]) == SHELL_COMMAND_PREFIX {
+				is_shell_command = true
+			}
 
-		if is_shell_command {
-			shell_exec(USER_INPUT)
-		} else {
-			_, out, err := sys_exec(USER_INPUT)
-			if err != nil {
-				log.Println(err)
+			if is_shell_command {
+				shell_exec(USER_INPUT)
 			} else {
-				log.Printf(string(out))
+				_, out, err := sys_exec(USER_INPUT)
+				if err != nil {
+					log.Println(err)
+				} else {
+					log.Printf(string(out))
+				}
 			}
 		}
+
 	}
 }
 

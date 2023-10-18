@@ -15,3 +15,11 @@ func get_working_directory() (string, error) {
 	}
 	return WORKING_DIRECTORY, nil
 }
+
+func change_working_directory(dir string) (string, error) {
+	if err := os.Chdir(dir); err != nil {
+		return "", err
+	}
+	WORKING_DIRECTORY = dir
+	return dir, nil
+}
