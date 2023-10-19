@@ -32,8 +32,23 @@ func sys_exec(cmd string, channel ...chan any) (*exec.Cmd, []byte, error) {
 		} else {
 			command_exec = exec.Command(cmd_path, args...)
 		}
+
 		command_exec.Dir = WORKING_DIRECTORY
+		//command_exec.Wait()
 		output, err := command_exec.Output()
+		if cmd == "ls" {
+			new_output := ""
+			output_string := string(output)
+			for _, ln := range strings.Split(output_string, "\n") {
+				path := filepath.Join(WORKING_DIRECTORY, ln)
+				if _, isNotDir := os.ReadDir(path); isNotDir == nil {
+					new_output = fmt.Sprintf("%v\n[dir] %v", new_output, color.HiMagentaString(ln))
+				} else if _, isNotFile := os.ReadFile(path); isNotFile == nil {
+					new_output = fmt.Sprintf("%v\n[file] %v", new_output, color.MagentaString(ln))
+				}
+			}
+			output = []byte(new_output)
+		}
 		return command_exec, output, err
 	}
 }
@@ -109,6 +124,12 @@ func shell_exec(cmd string) {
 		channel := *create_global_channel(name)
 		go sys_exec(task1, channel)
 		go sys_exec(task2, channel)
+	} else if command == "img" {
+		img, err := decodeImage("/home/shiny/Documents/code/gobash/twilight.png")
+		if err != nil {
+			log.Println(err)
+		}
+		log.Println(img.ColorModel())
 	}
 }
 

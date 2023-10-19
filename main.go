@@ -41,7 +41,7 @@ func main() {
 		fmt.Sprintf("version: %g.0", _VERSION),
 	}, " "))
 	show_shell_menu()
-
+	//log.Println(color.BlueString("████████"))
 	//log.SetPrefix(color.GreenString("out -> "))
 
 	if dir, wd_err := os.Getwd(); wd_err != nil {
